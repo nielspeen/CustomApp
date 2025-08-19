@@ -7,6 +7,7 @@ use App\Conversation;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\Cache;
 
 class CustomAppController extends Controller
 {
@@ -70,6 +71,12 @@ class CustomAppController extends Controller
 
         $conversationId = $referrerParts[4] ?? null;
 
+        if(Cache::has('customapp.conversation.' . $conversationId)) {
+            return response(Cache::get('customapp.conversation.' . $conversationId), 200, [
+                'Content-Type' => 'text/html',
+            ]);
+        }
+
         if(!$conversation = Conversation::find($conversationId)) {
             return response()->json(['status' => 'error', 'msg' => 'Conversation not found']);
         }
@@ -116,6 +123,8 @@ class CustomAppController extends Controller
         } catch (\Exception $e) {
             $response = 'Callback error: ' . $e->getMessage();
         }
+
+        Cache::put('customapp.conversation.' . $conversationId, $response, 60 * 5);
 
         return response($response, 200, [
             'Content-Type' => 'text/html',
