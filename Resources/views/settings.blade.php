@@ -57,6 +57,29 @@
         </div>
     </div>
 
+    <div class="form-group">
+        <label for="signature_header" class="col-sm-2 control-label">Cache TTL</label>
+
+        <div class="col-sm-6">
+            <select id="cache_ttl" class="form-control input-sized" name="settings[customapp.cache_ttl]">
+                <option value="0" {{ $settings['customapp.cache_ttl'] == '0' ? 'selected' : '' }}>Disabled</option>
+                <option value="30" {{ $settings['customapp.cache_ttl'] == '30' ? 'selected' : '' }}>30 seconds</option>
+                <option value="60" {{ $settings['customapp.cache_ttl'] == '60' ? 'selected' : '' }}>1 minute</option>
+                <option value="300" {{ $settings['customapp.cache_ttl'] == '300' ? 'selected' : '' }}>5 minutes</option>
+                <option value="600" {{ $settings['customapp.cache_ttl'] == '600' ? 'selected' : '' }}>10 minutes</option>
+                <option value="900" {{ $settings['customapp.cache_ttl'] == '900' ? 'selected' : '' }}>15 minutes</option>
+                <option value="1800" {{ $settings['customapp.cache_ttl'] == '1800' ? 'selected' : '' }}>30 minutes</option>
+                <option value="3600" {{ $settings['customapp.cache_ttl'] == '3600' ? 'selected' : '' }}>1 hour</option>
+            </select>
+
+            <p class="form-help">
+                {{ __('Select the cache TTL to use. This is used to cache the response from the custom app.') }}
+            </p>
+
+        </div>
+    </div>
+
+
     <div class="form-group margin-top margin-bottom">
         <div class="col-sm-6 col-sm-offset-2">
             <button type="submit" class="btn btn-primary">

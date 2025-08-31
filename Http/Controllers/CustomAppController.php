@@ -21,6 +21,7 @@ class CustomAppController extends Controller
                 'customapp.secret_key' => \Option::get('customapp.secret_key')[(string)$id] ?? '',
                 'customapp.signature_header' => \Option::get('customapp.signature_header')[(string)$id] ?? 'X-FREESCOUT-SIGNATURE',
                 'customapp.title' => \Option::get('customapp.title')[(string)$id] ?? '',
+                'customapp.cache_ttl' => \Option::get('customapp.cache_ttl')[(string)$id] ?? '30',
             ],
             'mailbox' => $mailbox
         ]);
@@ -37,11 +38,13 @@ class CustomAppController extends Controller
         $secrets[(string)$id] = $settings['customapp.secret_key'] ?? '';
         $signatureHeaders[(string)$id] = $settings['customapp.signature_header'] ?? 'X-FREESCOUT-SIGNATURE';
         $titles[(string)$id] = $settings['customapp.title'] ?? '';
+        $cacheTtls[(string)$id] = $settings['customapp.cache_ttl'] ?? '30';
 
         \Option::set('customapp.callback_url', $urls);
         \Option::set('customapp.secret_key', $secrets);
         \Option::set('customapp.signature_header', $signatureHeaders);
         \Option::set('customapp.title', $titles);
+        \Option::set('customapp.cache_ttl', $cacheTtls);
 
         \Session::flash('flash_success_floating', __('Settings updated'));
 
@@ -93,6 +96,7 @@ class CustomAppController extends Controller
         $secretKey = \Option::get('customapp.secret_key')[(string)$mailbox->id] ?? '';
         $signatureHeader = \Option::get('customapp.signature_header')[(string)$mailbox->id] ?? 'X-FREESCOUT-SIGNATURE';
         $title = \Option::get('customapp.title')[(string)$mailbox->id] ?? 'Custom App';
+        $cacheTtl = \Option::get('customapp.cache_ttl')[(string)$mailbox->id] ?? '30';
 
         if (!$callbackUrl) {
             return response()->json(['status' => 'error', 'msg' => 'Callback URL is not set']);
@@ -124,7 +128,9 @@ class CustomAppController extends Controller
             $response = 'Callback error: ' . $e->getMessage();
         }
 
-        Cache::put('customapp.conversation.' . $conversationId, $response, 60 * 5);
+        if($cacheTtl > 0) {
+            Cache::put('customapp.conversation.' . $conversationId, $response, $cacheTtl);
+        }
 
         return response($response, 200, [
             'Content-Type' => 'text/html',
