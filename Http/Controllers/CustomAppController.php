@@ -73,10 +73,14 @@ class CustomAppController extends Controller
 
         $conversationId = $referrerParts[4] ?? null;
 
-        $callbackUrl = \Option::get('customapp.callback_url')[(string)$mailbox->id] ?? '';
-        $secretKey = \Option::get('customapp.secret_key')[(string)$mailbox->id] ?? '';
-        $signatureHeader = \Option::get('customapp.signature_header')[(string)$mailbox->id] ?? 'X-FREESCOUT-SIGNATURE';
-        $title = \Option::get('customapp.title')[(string)$mailbox->id] ?? 'Custom App';
+        if(!$conversation = Conversation::find($conversationId)) {
+            return response()->json(['status' => 'error', 'msg' => 'Conversation not found']);
+        }
+
+        if(!$mailbox = Mailbox::find($conversation->mailbox_id)) {
+            return response()->json(['status' => 'error', 'msg' => 'Mailbox not found']);
+        }
+
         $cacheTtl = \Option::get('customapp.cache_ttl')[(string)$mailbox->id] ?? '0';
 
 
@@ -86,17 +90,15 @@ class CustomAppController extends Controller
             ]);
         }
 
-        if(!$conversation = Conversation::find($conversationId)) {
-            return response()->json(['status' => 'error', 'msg' => 'Conversation not found']);
-        }
-
-        if(!$mailbox = Mailbox::find($conversation->mailbox_id)) {
-            return response()->json(['status' => 'error', 'msg' => 'Mailbox not found']);
-        }
-
         if(!$customer = $conversation->customer) {
             return response()->json(['status' => 'error', 'msg' => 'Customer not found']);
         }
+
+        $callbackUrl = \Option::get('customapp.callback_url')[(string)$mailbox->id] ?? '';
+        $secretKey = \Option::get('customapp.secret_key')[(string)$mailbox->id] ?? '';
+        $signatureHeader = \Option::get('customapp.signature_header')[(string)$mailbox->id] ?? 'X-FREESCOUT-SIGNATURE';
+        $title = \Option::get('customapp.title')[(string)$mailbox->id] ?? 'Custom App';
+
 
         if (!$callbackUrl) {
             return response()->json(['status' => 'error', 'msg' => 'Callback URL is not set']);
