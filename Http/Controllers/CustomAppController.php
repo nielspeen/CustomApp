@@ -103,10 +103,23 @@ class CustomAppController extends Controller
         }
 
         $payload = [
+            'ticket' => [
+                'id'        => $conversation->id,
+                'number'    => $conversation->number,
+                'subject'   => $conversation->subject,
+            ],
             'customer' => [
                 'id'        => $customer->id,
+                'fname'     => $customer->first_name,
+                'lname'     => $customer->last_name,
                 'email'     => $customer->getMainEmail(),
                 'emails'    => $customer->emails->pluck('email')->toArray(),
+                'channel'   => $customer->channel ?? null,
+                'channel_id' => $customer->channel_id ?? null,
+            ],
+            'mailbox' => [
+                'id'            => $mailbox->id,
+                'email'         => $mailbox->email,
             ]
         ];
 
