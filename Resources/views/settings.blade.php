@@ -63,6 +63,8 @@
         <div class="col-sm-6">
             <select id="cache_ttl" class="form-control input-sized" name="settings[customapp.cache_ttl]">
                 <option value="0" {{ $settings['customapp.cache_ttl'] == '0' ? 'selected' : '' }}>Disabled</option>
+                <option value="5" {{ $settings['customapp.cache_ttl'] == '5' ? 'selected' : '' }}>5 seconds</option>
+                <option value="10" {{ $settings['customapp.cache_ttl'] == '10' ? 'selected' : '' }}>10 seconds</option>
                 <option value="30" {{ $settings['customapp.cache_ttl'] == '30' ? 'selected' : '' }}>30 seconds</option>
                 <option value="60" {{ $settings['customapp.cache_ttl'] == '60' ? 'selected' : '' }}>1 minute</option>
                 <option value="300" {{ $settings['customapp.cache_ttl'] == '300' ? 'selected' : '' }}>5 minutes</option>

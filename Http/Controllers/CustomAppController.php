@@ -5,7 +5,6 @@ namespace Modules\CustomApp\Http\Controllers;
 use App\Mailbox;
 use App\Conversation;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Cache;
 
@@ -21,7 +20,7 @@ class CustomAppController extends Controller
                 'customapp.secret_key' => \Option::get('customapp.secret_key')[(string)$id] ?? '',
                 'customapp.signature_header' => \Option::get('customapp.signature_header')[(string)$id] ?? 'X-FREESCOUT-SIGNATURE',
                 'customapp.title' => \Option::get('customapp.title')[(string)$id] ?? '',
-                'customapp.cache_ttl' => \Option::get('customapp.cache_ttl')[(string)$id] ?? '30',
+                'customapp.cache_ttl' => \Option::get('customapp.cache_ttl')[(string)$id] ?? '0',
             ],
             'mailbox' => $mailbox
         ]);
@@ -38,7 +37,7 @@ class CustomAppController extends Controller
         $secrets[(string)$id] = $settings['customapp.secret_key'] ?? '';
         $signatureHeaders[(string)$id] = $settings['customapp.signature_header'] ?? 'X-FREESCOUT-SIGNATURE';
         $titles[(string)$id] = $settings['customapp.title'] ?? '';
-        $cacheTtls[(string)$id] = $settings['customapp.cache_ttl'] ?? '30';
+        $cacheTtls[(string)$id] = $settings['customapp.cache_ttl'] ?? '0';
 
         \Option::set('customapp.callback_url', $urls);
         \Option::set('customapp.secret_key', $secrets);
@@ -74,7 +73,14 @@ class CustomAppController extends Controller
 
         $conversationId = $referrerParts[4] ?? null;
 
-        if(Cache::has('customapp.conversation.' . $conversationId)) {
+        $callbackUrl = \Option::get('customapp.callback_url')[(string)$mailbox->id] ?? '';
+        $secretKey = \Option::get('customapp.secret_key')[(string)$mailbox->id] ?? '';
+        $signatureHeader = \Option::get('customapp.signature_header')[(string)$mailbox->id] ?? 'X-FREESCOUT-SIGNATURE';
+        $title = \Option::get('customapp.title')[(string)$mailbox->id] ?? 'Custom App';
+        $cacheTtl = \Option::get('customapp.cache_ttl')[(string)$mailbox->id] ?? '0';
+
+
+        if($cacheTtl > 0 && Cache::has('customapp.conversation.' . $conversationId)) {
             return response(Cache::get('customapp.conversation.' . $conversationId), 200, [
                 'Content-Type' => 'text/html',
             ]);
@@ -91,12 +97,6 @@ class CustomAppController extends Controller
         if(!$customer = $conversation->customer) {
             return response()->json(['status' => 'error', 'msg' => 'Customer not found']);
         }
-
-        $callbackUrl = \Option::get('customapp.callback_url')[(string)$mailbox->id] ?? '';
-        $secretKey = \Option::get('customapp.secret_key')[(string)$mailbox->id] ?? '';
-        $signatureHeader = \Option::get('customapp.signature_header')[(string)$mailbox->id] ?? 'X-FREESCOUT-SIGNATURE';
-        $title = \Option::get('customapp.title')[(string)$mailbox->id] ?? 'Custom App';
-        $cacheTtl = \Option::get('customapp.cache_ttl')[(string)$mailbox->id] ?? '30';
 
         if (!$callbackUrl) {
             return response()->json(['status' => 'error', 'msg' => 'Callback URL is not set']);
