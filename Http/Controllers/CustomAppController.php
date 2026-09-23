@@ -55,6 +55,36 @@ class CustomAppController extends Controller
         return base64_encode(hash_hmac('sha1', $data, $secret, true));
     }
 
+    /**
+     * Apply customer fields returned by the callback ("customer": {"email": ..., "fname": ..., "lname": ...}).
+     * Only empty fields are filled in; nothing is overwritten.
+     */
+    protected function applyCustomerData($customer, $data)
+    {
+        if (!is_array($data) || !$data) {
+            return;
+        }
+
+        $changed = false;
+
+        if (!empty($data['email']) && is_string($data['email']) && !$customer->getMainEmail()) {
+            $email = \App\Email::sanitizeEmail($data['email']);
+            if ($email && !\App\Email::where('email', $email)->exists()) {
+                $customer->addEmail($email, true);
+                $changed = true;
+            }
+        }
+        if (!empty($data['fname']) && is_string($data['fname']) && (!$customer->first_name || preg_match('/^npub1[a-z0-9]+…[a-z0-9]+$/u', $customer->first_name))) {
+            $customer->first_name = mb_substr($data['fname'], 0, 255);
+            $customer->last_name = !empty($data['lname']) && is_string($data['lname']) ? mb_substr($data['lname'], 0, 255) : $customer->last_name;
+            $changed = true;
+        }
+
+        if ($changed) {
+            $customer->save();
+        }
+    }
+
     public function content(Request $request)
     {
         if(!auth()->check()) {
@@ -125,6 +155,9 @@ class CustomAppController extends Controller
             ]
         ];
 
+        // Let other modules add data (e.g. the Nostr module adds the customer's public keys).
+        $payload = \Eventy::filter('customapp.payload', $payload, $conversation, $customer, $mailbox);
+
         $content = json_encode($payload);
         $signature = $this->generateSignature($content, $secretKey);
 
@@ -138,7 +171,13 @@ class CustomAppController extends Controller
                 ],
                 'body' => $content,
             ]);
-            $response = json_decode($result->getBody()->getContents(), true)['html'];
+            $json = json_decode($result->getBody()->getContents(), true);
+            $response = $json['html'] ?? '';
+
+            // The backend may know the customer better than we do: adopt the email
+            // it returns when the customer has none yet (e.g. a Nostr-only customer).
+            $this->applyCustomerData($customer, $json['customer'] ?? []);
+            \Eventy::action('customapp.response', $json, $conversation, $customer, $mailbox);
         } catch (\Exception $e) {
             $response = 'Callback error: ' . $e->getMessage();
         }
