@@ -55,36 +55,6 @@ class CustomAppController extends Controller
         return base64_encode(hash_hmac('sha1', $data, $secret, true));
     }
 
-    /**
-     * Apply customer fields returned by the callback ("customer": {"email": ..., "fname": ..., "lname": ...}).
-     * Only empty fields are filled in; nothing is overwritten.
-     */
-    protected function applyCustomerData($customer, $data)
-    {
-        if (!is_array($data) || !$data) {
-            return;
-        }
-
-        $changed = false;
-
-        if (!empty($data['email']) && is_string($data['email']) && !$customer->getMainEmail()) {
-            $email = \App\Email::sanitizeEmail($data['email']);
-            if ($email && !\App\Email::where('email', $email)->exists()) {
-                $customer->addEmail($email, true);
-                $changed = true;
-            }
-        }
-        if (!empty($data['fname']) && is_string($data['fname']) && (!$customer->first_name || preg_match('/^npub1[a-z0-9]+…[a-z0-9]+$/u', $customer->first_name))) {
-            $customer->first_name = mb_substr($data['fname'], 0, 255);
-            $customer->last_name = !empty($data['lname']) && is_string($data['lname']) ? mb_substr($data['lname'], 0, 255) : $customer->last_name;
-            $changed = true;
-        }
-
-        if ($changed) {
-            $customer->save();
-        }
-    }
-
     public function content(Request $request)
     {
         if(!auth()->check()) {
@@ -106,6 +76,8 @@ class CustomAppController extends Controller
         if(!$conversation = Conversation::find($conversationId)) {
             return response()->json(['status' => 'error', 'msg' => 'Conversation not found']);
         }
+
+        abort_unless(auth()->user()->can('view', $conversation), 403);
 
         if(!$mailbox = Mailbox::find($conversation->mailbox_id)) {
             return response()->json(['status' => 'error', 'msg' => 'Mailbox not found']);
@@ -162,7 +134,7 @@ class CustomAppController extends Controller
         $signature = $this->generateSignature($content, $secretKey);
 
         try {
-            $client = new \GuzzleHttp\Client();
+            $client = app(\GuzzleHttp\Client::class);
             $result = $client->post($callbackUrl, [
                 'headers' => [
                     'Content-Type' => 'application/json',
@@ -174,10 +146,13 @@ class CustomAppController extends Controller
             $json = json_decode($result->getBody()->getContents(), true);
             $response = $json['html'] ?? '';
 
-            // The backend may know the customer better than we do: adopt the email
-            // it returns when the customer has none yet (e.g. a Nostr-only customer).
-            $this->applyCustomerData($customer, $json['customer'] ?? []);
-            \Eventy::action('customapp.response', $json, $conversation, $customer, $mailbox);
+            $customer = app(\Modules\CustomApp\Services\CustomerEnrichment::class)
+                ->apply($conversation, $customer, $json['customer'] ?? []);
+            if ($customer) {
+                $conversation->customer_id = $customer->id;
+                $conversation->setRelation('customer', $customer);
+                \Eventy::action('customapp.response', $json, $conversation, $customer, $mailbox);
+            }
         } catch (\Exception $e) {
             $response = 'Callback error: ' . $e->getMessage();
         }
