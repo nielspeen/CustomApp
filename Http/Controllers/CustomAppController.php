@@ -152,6 +152,7 @@ class CustomAppController extends Controller
                 $conversation->customer_id = $customer->id;
                 $conversation->setRelation('customer', $customer);
                 \Eventy::action('customapp.response', $json, $conversation, $customer, $mailbox);
+                $response = \Eventy::filter('customapp.content', $response, $conversation, $customer, $mailbox);
             }
         } catch (\Exception $e) {
             $response = 'Callback error: ' . $e->getMessage();

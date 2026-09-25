@@ -36,6 +36,12 @@ setting. No extra callback requests or background polling are added. A repeated
 response does not repeat a completed merge. The response hook receives the
 surviving contact and updated conversation association.
 
+Modules can handle `customapp.response` to store callback metadata, then use the
+`customapp.content` filter (`html`, `conversation`, `customer`, `mailbox`) to append
+page data to the cached HTML. After inserting that HTML, the browser dispatches
+`customapp:loaded` on `document`. Nostr uses these hooks to synchronize device
+labels and refresh message headers without another callback request.
+
 Run the integration tests from this module inside a FreeScout checkout:
 `php Tests/customer_tests.php`. Fixtures use an isolated in-memory SQLite database;
 Nostr key-transfer coverage runs when that module is installed.
