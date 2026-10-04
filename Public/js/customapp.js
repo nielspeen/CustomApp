@@ -1,10 +1,17 @@
-fetch('/customapp/content')
-    .then(response => response.text())
-    .then(data => {
-        document.getElementById('customapp-content').innerHTML = data;
-        document.dispatchEvent(new CustomEvent('customapp:loaded'));
-    })
-    .catch(error => {
-        console.error('Error loading customapp content:', error);
-    });
-
+// The Custom App section of the conversation's customer inspector, when the
+// mailbox has a callback URL (partials/sidebar).
+(function () {
+    var container = document.getElementById('customapp-content');
+    if (!container) {
+        return;
+    }
+    fetch('/customapp/content')
+        .then(response => response.text())
+        .then(data => {
+            container.innerHTML = data;
+            document.dispatchEvent(new CustomEvent('customapp:loaded'));
+        })
+        .catch(error => {
+            console.error('Error loading customapp content:', error);
+        });
+})();
