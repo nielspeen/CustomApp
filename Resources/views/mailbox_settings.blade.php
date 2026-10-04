@@ -2,25 +2,16 @@
 
 @section('title_full', 'Custom App'.' - '.$mailbox->name)
 
+@section('main_class', 'fruit-ui')
+
 @section('sidebar')
-@include('partials/sidebar_menu_toggle')
-@include('mailboxes/sidebar_menu')
+    @include('mailboxes/sidebar_menu')
 @endsection
 
 @section('content')
+    <div class="page-content">
+        @include('partials/flash_messages')
 
-<div class="section-heading">
-    Custom App
-</div>
-
-@include('partials/flash_messages')
-
-<div class="row-container">
-    <div class="row">
-        <div class="col-xs-12">
-            @include('customapp::settings')
-        </div>
+        @include('customapp::settings')
     </div>
-</div>
-
 @endsection
