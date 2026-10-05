@@ -1,0 +1,20 @@
+{
+    "html": "<div class=\"c-sb-section\">Help Scout markup</div>",
+    "sidebar": {
+        "version": 1,
+        "title": "Leman Lee",
+        "url": "https://12vpx.example/backend/clients/123",
+        "sections": [
+            {"title": "Account", "rows": [
+                {"label": "Status", "value": "Active", "tone": "success"},
+                {"label": "Unpaid invoices", "value": "2", "tone": "warning", "links": [{"text": "#881", "url": "https://12vpx.example/invoices/881"}, {"text": "evil", "url": "javascript:alert(1)"}]},
+                {"label": "<script>alert(1)</script>", "value": "<b>bold</b>", "url": "javascript:alert(2)"}
+            ]},
+            {"title": "Empty", "rows": []},
+            {"title": "Speed tests", "collapsed": true, "rows": [
+                {"label": "Shanghai › Tokyo", "value": "↓ 51 · ↑ 12 · 34 ms", "detail": "2026-10-01"},
+                {"label": "Hong Kong › Tokyo", "value": "↓ 80 · ↑ 20 · 12 ms", "detail": "2026-10-02"}
+            ]}
+        ]
+    }
+}

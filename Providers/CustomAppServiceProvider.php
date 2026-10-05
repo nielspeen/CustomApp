@@ -39,6 +39,11 @@ class CustomAppServiceProvider extends ServiceProvider
             return $javascripts;
         });
 
+        \Eventy::addFilter('stylesheets', function ($styles) {
+            $styles[] = \Module::getPublicPath('customapp') . '/css/customapp.css';
+            return $styles;
+        });
+
         \Eventy::addAction('mailboxes.settings.menu', function ($mailbox) {
             if (auth()->user()->isAdmin()) {
                 echo \View::make('customapp::partials/settings_menu', ['mailbox' => $mailbox])->render();

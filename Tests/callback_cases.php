@@ -26,7 +26,7 @@ runCase('sidebar merges from one callback and cached views make no more requests
     try {
         $first = $controller->content($request);
         $second = $controller->content($request);
-        check($first->getContent() === '<b>Sidebar</b>' && $second->getContent() === '<b>Sidebar</b>', $first->getContent());
+        check(str_contains($first->getContent(), '<b>Sidebar</b>') && $second->getContent() === $first->getContent(), $first->getContent());
         check(count($history) === 1, 'extra callback request');
         check($observed === [$target->id, $target->id, $target->id], 'response hook received a deleted contact');
         $sent = $history[0]['request'];
@@ -53,3 +53,21 @@ runCase('a cached sidebar cannot bypass conversation access', function () {
         check($error->getStatusCode() === 403, 'wrong access denial');
     }
 });
+
+runCase('sidebar data is rendered as inspector sections, safely', function () {
+    $json = json_decode(file_get_contents(__DIR__.'/fixtures/sidebar_v1.json'), true);
+    $sidebar = \Modules\CustomApp\Http\Controllers\CustomAppController::sidebarData($json['sidebar']);
+    check(count($sidebar['sections']) === 2, 'an empty section was kept');
+    check(count($sidebar['sections'][0]['rows'][1]['links']) === 1, 'a javascript: link was kept');
+    check($sidebar['sections'][0]['rows'][2]['url'] === '', 'a javascript: url was kept');
+    check($sidebar['sections'][0]['rows'][0]['tone'] === '', 'success should be plain text');
+    check(\Modules\CustomApp\Http\Controllers\CustomAppController::sidebarData(['version' => 2]) === null, 'unknown version accepted');
+
+    $html = view('customapp::partials/customer', ['title' => '12VPX', 'sidebar' => $sidebar])->render();
+    check(str_contains($html, '<h3>12VPX</h3>') && str_contains($html, 'href="https://12vpx.example/backend/clients/123" target="_blank" rel="noopener">Leman Lee</a>'), 'customer heading');
+    check(str_contains($html, '<h3>Account</h3>') && !str_contains($html, 'Help Scout'), 'sections');
+    check(str_contains($html, 'f-badge--warning') && substr_count($html, 'f-badge--') === 1, 'badges only for warnings');
+    check(!str_contains($html, '<script>') && !str_contains($html, '<b>bold</b>') && !str_contains($html, 'javascript:'), 'unescaped remote data');
+    check(str_contains($html, 'Speed tests · 2') && str_contains($html, '<details'), 'collapsed section');
+});
+

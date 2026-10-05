@@ -1,0 +1,22 @@
+/* The Custom App's sections in the customer inspector (partials/customer). */
+.customapp-customer__name {
+    margin: 0 0 12px;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+.customapp-rows {
+    margin: 0 0 12px;
+}
+.customapp-rows dd {
+    overflow-wrap: anywhere;
+}
+.customapp-rows .f-help {
+    margin: 2px 0 0;
+}
+.customapp-links {
+    margin: 2px 0 0;
+    font-size: var(--f-text-sm);
+}
+.customapp-group > .f-disclosure {
+    margin-bottom: 12px;
+}

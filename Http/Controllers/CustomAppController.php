@@ -144,7 +144,11 @@ class CustomAppController extends Controller
                 'body' => $content,
             ]);
             $json = json_decode($result->getBody()->getContents(), true);
-            $response = $json['html'] ?? '';
+            // Data (sidebar, version 1) is rendered here; other callbacks send their own HTML.
+            $sidebar = self::sidebarData($json['sidebar'] ?? null);
+            $response = $sidebar
+                ? view('customapp::partials/customer', ['title' => $title, 'sidebar' => $sidebar])->render()
+                : view('customapp::partials/html', ['title' => $title, 'html' => $json['html'] ?? ''])->render();
 
             $customer = app(\Modules\CustomApp\Services\CustomerEnrichment::class)
                 ->apply($conversation, $customer, $json['customer'] ?? []);
@@ -155,7 +159,7 @@ class CustomAppController extends Controller
                 $response = \Eventy::filter('customapp.content', $response, $conversation, $customer, $mailbox);
             }
         } catch (\Exception $e) {
-            $response = 'Callback error: ' . $e->getMessage();
+            $response = view('customapp::partials/html', ['title' => $title, 'html' => e('Callback error: '.$e->getMessage())])->render();
         }
 
         if($cacheTtl > 0) {
@@ -165,5 +169,51 @@ class CustomAppController extends Controller
         return response($response, 200, [
             'Content-Type' => 'text/html',
         ]);
+    }
+
+    /**
+     * The callback's sidebar data (version 1), checked: it's remote, so only strings,
+     * known tones and http(s) links, and a limited number of each. Null for other data.
+     */
+    public static function sidebarData($sidebar)
+    {
+        if (!is_array($sidebar) || ($sidebar['version'] ?? null) !== 1) {
+            return null;
+        }
+        $text = fn ($value) => is_scalar($value) ? trim((string) $value) : '';
+        $url = function ($value) use ($text) {
+            $value = $text($value);
+
+            return preg_match('#^https?://#i', $value) ? $value : '';
+        };
+
+        $sections = [];
+        foreach (array_slice(is_array($sidebar['sections'] ?? null) ? $sidebar['sections'] : [], 0, 20) as $section) {
+            $rows = [];
+            foreach (array_slice(is_array($section['rows'] ?? null) ? $section['rows'] : [], 0, 50) as $row) {
+                if (!is_array($row) || $text($row['label'] ?? '') === '') {
+                    continue;
+                }
+                $links = [];
+                foreach (array_slice(is_array($row['links'] ?? null) ? $row['links'] : [], 0, 20) as $link) {
+                    if (is_array($link) && $url($link['url'] ?? '') && $text($link['text'] ?? '') !== '') {
+                        $links[] = ['text' => $text($link['text']), 'url' => $url($link['url']), 'title' => $text($link['title'] ?? '')];
+                    }
+                }
+                $rows[] = [
+                    'label'  => $text($row['label']),
+                    'url'    => $url($row['url'] ?? ''),
+                    'value'  => $text($row['value'] ?? ''),
+                    'tone'   => in_array($row['tone'] ?? '', ['warning', 'danger']) ? $row['tone'] : '',
+                    'detail' => $text($row['detail'] ?? ''),
+                    'links'  => $links,
+                ];
+            }
+            if ($rows) {
+                $sections[] = ['title' => $text($section['title'] ?? ''), 'collapsed' => !empty($section['collapsed']), 'rows' => $rows];
+            }
+        }
+
+        return ['title' => $text($sidebar['title'] ?? ''), 'url' => $url($sidebar['url'] ?? ''), 'sections' => $sections];
     }
 }

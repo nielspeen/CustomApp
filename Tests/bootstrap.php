@@ -63,7 +63,12 @@ foreach (['customers', 'emails'] as $table) {
     $table->timestamps();
 });
 
-if (is_dir($root.'/Modules/Nostr')) {
+// Tallport keeps the Nostr tables in core; customer merges move their keys.
+foreach (glob($root.'/database/migrations/*_create_nostr_tables.php') as $file) {
+    require_once $file;
+    (new \CreateNostrTables())->up();
+}
+if (is_file($root.'/Modules/Nostr/Database/Migrations/2026_09_23_000002_create_nostr_customer_keys_table.php')) {
     require_once $root.'/Modules/Nostr/Database/Migrations/2026_09_23_000002_create_nostr_customer_keys_table.php';
     require_once $root.'/Modules/Nostr/Database/Migrations/2026_09_23_000003_create_nostr_events_table.php';
     (new \CreateNostrCustomerKeysTable())->up();
