@@ -1,7 +1,7 @@
 // The Custom App section of the conversation's customer inspector, when the
 // mailbox has a callback URL (partials/sidebar). On each page, also one opened
-// with wire:navigate.
-document.addEventListener('livewire:navigated', function () {
+// with wire:navigate, and when a conversation opens in place.
+var customappLoad = function () {
     var container = document.getElementById('customapp-content');
     if (!container) {
         return;
@@ -15,4 +15,6 @@ document.addEventListener('livewire:navigated', function () {
         .catch(error => {
             console.error('Error loading customapp content:', error);
         });
-});
+};
+document.addEventListener('livewire:navigated', customappLoad);
+document.addEventListener('tallport:conversation-opened', customappLoad);
