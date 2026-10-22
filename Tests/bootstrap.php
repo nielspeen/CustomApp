@@ -63,6 +63,17 @@ foreach (['customers', 'emails'] as $table) {
     $table->timestamps();
 });
 
+// Customer merges also update these contacts when the host has the channels.
+$matrix_migration = $root.'/database/migrations/2026_11_13_010101_create_matrix_tables.php';
+if (is_file($matrix_migration)) {
+    (require $matrix_migration)->up();
+}
+$web_chat_migration = $root.'/database/migrations/2026_11_25_010101_create_web_chat_visitors_table.php';
+if (is_file($web_chat_migration)) {
+    require_once $web_chat_migration;
+    (new \CreateWebChatVisitorsTable())->up();
+}
+
 // Tallport keeps the Nostr tables in core; customer merges move their keys.
 foreach (glob($root.'/database/migrations/*_create_nostr_tables.php') as $file) {
     require_once $file;

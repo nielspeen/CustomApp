@@ -61,19 +61,12 @@ class CustomAppController extends Controller
             return response()->json(['status' => 'error', 'msg' => 'Unauthorized']);
         }
 
-        $referrer = $request->headers->get('referer');
+        $conversationId = $request->query('conversation_id');
 
-        if ($referrer) {
-            $referrer = explode('?', $referrer)[0];
-        }
-        
-        if (!is_array($referrerParts = explode('/', $referrer)) || !isset($referrerParts[4])) {
-            return response()->json(['status' => 'error', 'msg' => 'Invalid referrer']);
-        }
+        $conversation = is_scalar($conversationId) && ctype_digit((string) $conversationId)
+            ? Conversation::find($conversationId) : null;
 
-        $conversationId = $referrerParts[4] ?? null;
-
-        if(!$conversation = Conversation::find($conversationId)) {
+        if (!$conversation) {
             return response()->json(['status' => 'error', 'msg' => 'Conversation not found']);
         }
 

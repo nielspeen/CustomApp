@@ -15,8 +15,8 @@ runCase('sidebar merges from one callback and cached views make no more requests
     $stack = \GuzzleHttp\HandlerStack::create($mock);
     $stack->push(\GuzzleHttp\Middleware::history($history));
     app()->instance(\GuzzleHttp\Client::class, new \GuzzleHttp\Client(['handler' => $stack]));
-    $request = \Illuminate\Http\Request::create('/customapp/content');
-    $request->headers->set('referer', 'https://help.example.test/conversation/'.$conversation->id);
+    $request = \Illuminate\Http\Request::create('/customapp/content?conversation_id='.$conversation->id);
+    $request->headers->set('referer', 'https://help.example.test/mailbox/support/drafts/1042');
     $controller = app(\Modules\CustomApp\Http\Controllers\CustomAppController::class);
     $observed = null;
     $hook = function ($json, $conversation, $customer) use (&$observed) {
@@ -44,13 +44,22 @@ runCase('a cached sidebar cannot bypass conversation access', function () {
         public function can($abilities, $arguments = []) { return false; }
     };
     auth()->setUser($user);
-    $request = \Illuminate\Http\Request::create('/customapp/content');
+    $request = \Illuminate\Http\Request::create('/customapp/content?conversation_id='.$conversation->id);
     $request->headers->set('referer', 'https://help.example.test/conversation/'.$conversation->id);
     try {
         app(\Modules\CustomApp\Http\Controllers\CustomAppController::class)->content($request);
         throw new \RuntimeException('private sidebar was returned');
     } catch (\Symfony\Component\HttpKernel\Exception\HttpException $error) {
         check($error->getStatusCode() === 403, 'wrong access denial');
+    }
+});
+
+runCase('malformed conversation IDs do not reach the callback', function () {
+    $controller = app(\Modules\CustomApp\Http\Controllers\CustomAppController::class);
+    foreach (['conversation_id=support', 'conversation_id[]=1'] as $query) {
+        $request = \Illuminate\Http\Request::create('/customapp/content?'.$query);
+        $response = $controller->content($request);
+        check($response->getContent() === '{"status":"error","msg":"Conversation not found"}', $response->getContent());
     }
 });
 
@@ -70,4 +79,3 @@ runCase('sidebar data is rendered as inspector sections, safely', function () {
     check(!str_contains($html, '<script>') && !str_contains($html, '<b>bold</b>') && !str_contains($html, 'javascript:'), 'unescaped remote data');
     check(str_contains($html, 'Speed tests · 2') && str_contains($html, '<details'), 'collapsed section');
 });
-

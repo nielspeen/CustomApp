@@ -6,7 +6,11 @@ var customappLoad = function () {
     if (!container) {
         return;
     }
-    fetch('/customapp/content')
+    var conversationId = document.body.getAttribute('data-conversation_id');
+    if (!conversationId) {
+        return;
+    }
+    fetch('/customapp/content?conversation_id=' + encodeURIComponent(conversationId))
         .then(response => response.text())
         .then(data => {
             container.innerHTML = data;
